@@ -254,7 +254,6 @@
         <section>
             <h2>Results</h2>
             <div id="results" class="results">
-                <!-- Results will be injected here -->
             </div>
         </section>
     </main>
@@ -274,60 +273,51 @@
 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (!file) return;
+            file && (() => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
 
-            const img = new Image();
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                    currentPixels = convertToPixels(imageData.data);
 
-                const imageData = ctx.getImageData(0, 0, img.width, img.height);
-                currentPixels = convertToPixels(imageData.data);
-
-                // Clear previous results
-                resultsContainer.innerHTML = '';
-            };
-            img.src = URL.createObjectURL(file);
+                    resultsContainer.innerHTML = '';
+                };
+                img.src = URL.createObjectURL(file);
+            })();
         });
 
         quantizeBtn.addEventListener('click', async () => {
-            if (currentPixels.length === 0) {
-                alert('Please upload an image first.');
-                return;
-            }
+            (currentPixels.length === 0) ? alert('Please upload an image first.') : await (async () => {
+                const algorithm = algorithmSelect.value;
+                const maxColors = parseInt(maxColorsInput.value, 10);
 
-            const algorithm = algorithmSelect.value;
-            const maxColors = parseInt(maxColorsInput.value, 10);
+                resultsContainer.innerHTML = '<p>Processing...</p>';
 
-            resultsContainer.innerHTML = '<p>Processing...</p>';
+                await new Promise(resolve => requestAnimationFrame(resolve));
 
-            // Allow UI to update
-            await new Promise(resolve => requestAnimationFrame(resolve));
+                let result;
+                const startTime = performance.now();
 
-            let result;
-            const startTime = performance.now();
+                const algorithms = {
+                    celebi: () => QuantizerCelebi.quantize(currentPixels, maxColors),
+                    wu: () => new QuantizerWu().quantize(currentPixels, maxColors),
+                    wsmeans: () => QuantizerWsmeans.quantize(currentPixels, [], maxColors)
+                };
 
-            try {
-                switch (algorithm) {
-                    case 'celebi':
-                        result = QuantizerCelebi.quantize(currentPixels, maxColors);
-                        break;
-                    case 'wu':
-                        result = new QuantizerWu().quantize(currentPixels, maxColors);
-                        break;
-                    case 'wsmeans':
-                        result = QuantizerWsmeans.quantize(currentPixels, [], maxColors);
-                        break;
+                try {
+                    result = algorithms[algorithm]();
+                } catch (error) {
+                    console.error(error);
+                    resultsContainer.innerHTML = `<p style="color: red">Error: ${error.message}</p>`;
+                    return;
                 }
-            } catch (error) {
-                console.error(error);
-                resultsContainer.innerHTML = `<p style="color: red">Error: ${error.message}</p>`;
-                return;
-            }
 
-            const endTime = performance.now();
-            displayResults(result, endTime - startTime);
+                const endTime = performance.now();
+                displayResults(result, endTime - startTime);
+            })();
         });
 
         function convertToPixels(imageBytes) {
@@ -337,11 +327,7 @@
                 const g = imageBytes[i + 1];
                 const b = imageBytes[i + 2];
                 const a = imageBytes[i + 3];
-                if (a < 255) {
-                    continue;
-                }
-                const argb = argbFromRgb(r, g, b);
-                pixels.push(argb);
+                (a >= 255) && pixels.push(argbFromRgb(r, g, b));
             }
             return pixels;
         }
@@ -349,16 +335,10 @@
         function displayResults(result, duration) {
             resultsContainer.innerHTML = '';
 
-            let colors = [];
-            if (result instanceof Map) {
-                // Convert Map to array of objects [color, count]
-                colors = Array.from(result.entries()).map(([color, count]) => ({ color, count }));
-                // Sort by count descending
-                colors.sort((a, b) => b.count - a.count);
-            } else if (Array.isArray(result)) {
-                // Array of colors
-                colors = result.map(color => ({ color, count: null }));
-            }
+            const isMap = result instanceof Map;
+            const colors = isMap
+                ? Array.from(result.entries()).map(([color, count]) => ({ color, count })).sort((a, b) => b.count - a.count)
+                : result.map(color => ({ color, count: null }));
 
             const infoDiv = document.createElement('div');
             infoDiv.style.gridColumn = '1 / -1';
@@ -378,9 +358,7 @@
                 const text = document.createElement('div');
                 text.className = 'result-text';
                 text.textContent = `Hex: ${hex}\nARGB: ${color}`;
-                if (count !== null) {
-                    text.textContent += `\nCount: ${count}`;
-                }
+                (count !== null) && (text.textContent += `\nCount: ${count}`);
 
                 const header = document.createElement('div');
                 header.appendChild(indicator);
