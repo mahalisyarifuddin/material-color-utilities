@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantize Feature</title>
+    <style>
+        :root {
+            --primary: #0070ea;
+            --background: #f7f7f8;
+            --surface: #fff;
+            --text: #333;
+            --border: #e0e0e0;
+            --input: #fff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not(.light) {
+                --background: #10131b;
+                --surface: #181c23;
+                --text: #c1c6d7;
+                --border: #414754;
+                --input: #0f1218;
+            }
+        }
+
+        :root.dark {
+            --background: #10131b;
+            --surface: #181c23;
+            --text: #c1c6d7;
+            --border: #414754;
+            --input: #0f1218;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            font-family: sans-serif;
+            line-height: 1.5;
+            margin: 0;
+            padding: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            min-width: 0;
+        }
+
+        h2 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            font-size: 1.2em;
+        }
+
+        .font-group {
+            background: var(--background);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .font-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        input[type="color"] {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: none;
+            padding: 0;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        input:not([type="color"]), textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--input);
+            color: var(--text);
+            margin-top: 4px;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .controls select {
+            width: auto;
+        }
+
+        button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #previewContainer {
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: auto;
+            margin-bottom: 24px;
+        }
+
+        #canvasContainer {
+            padding: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        canvas {
+            transform-origin: top left;
+            display: block;
+            flex-shrink: 0;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .result-card {
+            background: var(--background);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 6px;
+        }
+
+        .result-text {
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Quantize Feature</h1>
+    </header>
+    <main>
+        <section>
+            <h2>Input</h2>
+
+            <label>
+                Upload Image
+                <input type="file" id="fileInput" accept="image/*">
+            </label>
+
+            <label>
+                Algorithm
+                <select id="algorithm">
+                    <option value="celebi">Celebi</option>
+                    <option value="wu">Wu</option>
+                    <option value="wsmeans">Wsmeans</option>
+                </select>
+            </label>
+
+            <label>
+                Max Colors
+                <input type="number" id="maxColors" value="128" min="1" max="256">
+            </label>
+
+            <div class="controls">
+                <button id="quantizeBtn">Quantize</button>
+            </div>
+
+            <div id="previewContainer">
+                <div id="canvasContainer">
+                    <canvas id="canvas"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Results</h2>
+            <div id="results" class="results">
+                <!-- Results will be injected here -->
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { QuantizerCelebi, QuantizerWu, QuantizerWsmeans, argbFromRgb, hexFromArgb } from "https://esm.sh/@material/material-color-utilities";
+
+        const fileInput = document.getElementById('fileInput');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const quantizeBtn = document.getElementById('quantizeBtn');
+        const algorithmSelect = document.getElementById('algorithm');
+        const maxColorsInput = document.getElementById('maxColors');
+        const resultsContainer = document.getElementById('results');
+
+        let currentPixels = [];
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                currentPixels = convertToPixels(imageData.data);
+
+                // Clear previous results
+                resultsContainer.innerHTML = '';
+            };
+            img.src = URL.createObjectURL(file);
+        });
+
+        quantizeBtn.addEventListener('click', async () => {
+            if (currentPixels.length === 0) {
+                alert('Please upload an image first.');
+                return;
+            }
+
+            const algorithm = algorithmSelect.value;
+            const maxColors = parseInt(maxColorsInput.value, 10);
+
+            resultsContainer.innerHTML = '<p>Processing...</p>';
+
+            // Allow UI to update
+            await new Promise(resolve => requestAnimationFrame(resolve));
+
+            let result;
+            const startTime = performance.now();
+
+            try {
+                switch (algorithm) {
+                    case 'celebi':
+                        result = QuantizerCelebi.quantize(currentPixels, maxColors);
+                        break;
+                    case 'wu':
+                        result = new QuantizerWu().quantize(currentPixels, maxColors);
+                        break;
+                    case 'wsmeans':
+                        result = QuantizerWsmeans.quantize(currentPixels, [], maxColors);
+                        break;
+                }
+            } catch (error) {
+                console.error(error);
+                resultsContainer.innerHTML = `<p style="color: red">Error: ${error.message}</p>`;
+                return;
+            }
+
+            const endTime = performance.now();
+            displayResults(result, endTime - startTime);
+        });
+
+        function convertToPixels(imageBytes) {
+            const pixels = [];
+            for (let i = 0; i < imageBytes.length; i += 4) {
+                const r = imageBytes[i];
+                const g = imageBytes[i + 1];
+                const b = imageBytes[i + 2];
+                const a = imageBytes[i + 3];
+                if (a < 255) {
+                    continue;
+                }
+                const argb = argbFromRgb(r, g, b);
+                pixels.push(argb);
+            }
+            return pixels;
+        }
+
+        function displayResults(result, duration) {
+            resultsContainer.innerHTML = '';
+
+            let colors = [];
+            if (result instanceof Map) {
+                // Convert Map to array of objects [color, count]
+                colors = Array.from(result.entries()).map(([color, count]) => ({ color, count }));
+                // Sort by count descending
+                colors.sort((a, b) => b.count - a.count);
+            } else if (Array.isArray(result)) {
+                // Array of colors
+                colors = result.map(color => ({ color, count: null }));
+            }
+
+            const infoDiv = document.createElement('div');
+            infoDiv.style.gridColumn = '1 / -1';
+            infoDiv.textContent = `Found ${colors.length} colors in ${duration.toFixed(2)}ms`;
+            resultsContainer.appendChild(infoDiv);
+
+            colors.forEach(({ color, count }) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+
+                const hex = hexFromArgb(color);
+
+                const indicator = document.createElement('span');
+                indicator.className = 'indicator';
+                indicator.style.backgroundColor = hex;
+
+                const text = document.createElement('div');
+                text.className = 'result-text';
+                text.textContent = `Hex: ${hex}\nARGB: ${color}`;
+                if (count !== null) {
+                    text.textContent += `\nCount: ${count}`;
+                }
+
+                const header = document.createElement('div');
+                header.appendChild(indicator);
+                header.appendChild(document.createTextNode(hex));
+
+                card.appendChild(header);
+                card.appendChild(text);
+
+                resultsContainer.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
