@@ -270,7 +270,8 @@
       argbFromRgb,
       hexFromArgb,
       argbFromHex,
-      CorePalette
+      CorePalette,
+      Hct
     } from 'https://esm.sh/@material/material-color-utilities@0.2.7';
 
     const fileInput = document.getElementById('file-input');
@@ -303,10 +304,12 @@
     };
 
     const createColorChip = (argb) => {
+      const hex = hexFromArgb(argb);
+      const tone = Math.round(Hct.fromInt(argb).tone);
       const chip = document.createElement('div');
       chip.className = 'color-chip';
-      chip.style.backgroundColor = hexFromArgb(argb);
-      chip.title = 'Use this color';
+      chip.style.backgroundColor = hex;
+      chip.title = `${hex} Tone: ${tone}`;
       chip.onclick = () => displayPalette(argb);
       return chip;
     };
