@@ -327,7 +327,7 @@
     const displayQuantizedColors = (scoredColors) => {
       quantizeSection.classList.remove('hidden');
       quantizedContainer.innerHTML = '';
-      scoredColors.slice(0, 8).map(argb =>
+      scoredColors.slice(0, 4).map(argb =>
         quantizedContainer.appendChild(createColorChip(argb))
       );
     };
@@ -373,7 +373,7 @@
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
 
-      const maxDimension = 256;
+      const maxDimension = 128;
       const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
 
       canvas.width = Math.floor(img.naturalWidth * scale);
@@ -393,7 +393,7 @@
       }
 
       const result = QuantizerCelebi.quantize(pixels, 128);
-      const ranked = Score.score(result, { desired: 128 });
+      const ranked = Score.score(result);
 
       displayQuantizedColors(ranked);
       (ranked.length > 0) ? displayPalette(ranked[0]) : null;
