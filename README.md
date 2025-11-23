@@ -20,6 +20,16 @@ develop color themes and schemes in your app.
 
 <video autoplay muted loop src="https://user-images.githubusercontent.com/6655696/146014425-8e8e04bc-e646-4cc2-a3e7-97497a3e1b09.mp4" data-canonical-src="https://user-images.githubusercontent.com/6655696/146014425-8e8e04bc-e646-4cc2-a3e7-97497a3e1b09.mp4" class="d-block rounded-bottom-2 width-fit" style="max-width:640px;"></video>
 
+## Interactive Demo
+
+This repository includes a standalone interactive demo for extracting colors from images (Quantization) and generating tonal palettes.
+
+To use the demo:
+1.  Open `index.html` in your web browser.
+2.  **Image Mode:** Upload an image to see extracted colors and the resulting tonal palettes.
+3.  **Color Mode:** Pick a color manually to generate palettes.
+4.  **Copy Colors:** Click on any generated tone chip to copy its Hex code.
+
 ## Library availability
 
 
