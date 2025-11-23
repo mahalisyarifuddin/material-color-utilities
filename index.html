@@ -6,95 +6,159 @@
   <title>Material Color Utilities - Quantize & Palette</title>
   <style>
     :root {
-      --primary: #6750A4;
-      --on-primary: #FFFFFF;
-      --primary-container: #EADDFF;
-      --on-primary-container: #21005D;
-      --background: #FFFBFE;
-      --on-background: #1C1B1F;
-      --surface: #FFFBFE;
-      --on-surface: #1C1B1F;
-      --outline: #79747E;
+      --primary: #0070ea;
+      --primary-hover: #005bc0;
+      --background: #f9f9ff;
+      --surface: #fff;
+      --text: #414754;
+      --border: #c1c6d7;
+      --hover: #d7d9e5;
     }
 
     @media (prefers-color-scheme: dark) {
-      :root {
-        --primary: #D0BCFF;
-        --on-primary: #381E72;
-        --primary-container: #4F378B;
-        --on-primary-container: #EADDFF;
-        --background: #1C1B1F;
-        --on-background: #E6E1E5;
-        --surface: #1C1B1F;
-        --on-surface: #E6E1E5;
-        --outline: #938F99;
+      :root:not(.light) {
+        --background: #10131b;
+        --surface: #181c23;
+        --text: #c1c6d7;
+        --border: #414754;
+        --hover: #10131b;
       }
     }
 
-    body {
-      background-color: var(--background);
-      color: var(--on-background);
-      font-family: system-ui, -apple-system, sans-serif;
-      margin: 0;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+    :root.dark {
+      --background: #10131b;
+      --surface: #181c23;
+      --text: #c1c6d7;
+      --border: #414754;
+      --hover: #10131b;
     }
 
-    h1, h2 {
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--text);
+      font-family: sans-serif;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
     }
 
     .container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .input-section {
-      padding: 16px;
-      background-color: var(--surface);
-      border: 1px solid var(--outline);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      flex: 1;
-      min-width: 300px;
+      max-width: 720px;
+      padding: 2rem;
+      width: 100%;
+      position: relative;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 1.5rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    h1, h2 {
+      margin: 0.5rem 0;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    input, select, textarea, button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 0.5rem;
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    button {
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .button-primary {
+      background: var(--primary);
+      border: none;
+      color: #fff;
+    }
+
+    .button-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .button-secondary:hover {
+      background: var(--hover);
+    }
+
+    .input-toggle {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .input-toggle button {
+      flex: 1;
+    }
+
+    .input-toggle button.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
     }
 
     #preview-image {
       max-width: 100%;
       max-height: 300px;
-      margin-top: 8px;
+      margin-top: 1rem;
       border-radius: 4px;
       display: none;
       object-fit: contain;
+      border: 1px solid var(--border);
     }
 
     .color-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
       gap: 8px;
     }
 
     .color-chip {
-      height: 80px;
-      border-radius: 8px;
+      height: 60px;
+      border-radius: 4px;
       display: flex;
       flex-direction: column;
       justify-content: end;
-      padding: 8px;
-      font-size: 12px;
-      border: 1px solid var(--outline);
+      padding: 4px;
+      font-size: 10px;
+      border: 1px solid var(--border);
       cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .color-chip:hover {
+      transform: scale(1.05);
+      border-color: var(--primary);
     }
 
     .palette-section {
@@ -106,12 +170,13 @@
     .tonal-palette {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
     }
 
     .tonal-row {
       display: flex;
       flex-wrap: wrap;
+      gap: 4px;
     }
 
     .tone-chip {
@@ -120,7 +185,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.1s;
+    }
+
+    .tone-chip:hover {
+      transform: scale(1.1);
+      border-color: var(--text);
+      z-index: 1;
     }
 
     .input-row {
@@ -128,36 +203,65 @@
       align-items: center;
       gap: 8px;
     }
+
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--surface);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+
+    #toast.visible {
+      opacity: 1;
+    }
+
   </style>
 </head>
 <body>
-  <h1>Material Color Utilities</h1>
+  <div class="container">
+    <h1>Material Color Utilities</h1>
 
-  <div class="input-group">
-    <div class="input-section">
-      <h2>Image Input</h2>
+    <div class="input-toggle">
+      <button id="btn-mode-image" class="active button-secondary">Image</button>
+      <button id="btn-mode-color" class="button-secondary">Color</button>
+    </div>
+
+    <div id="section-image">
+      <label for="file-input">Upload Image</label>
       <input type="file" id="file-input" accept="image/*">
       <img id="preview-image" alt="Preview">
-    </div>
 
-    <div class="input-section">
-      <h2>Color Input</h2>
-      <div class="input-row">
-        <input type="color" id="color-picker" value="#6750A4">
-        <input type="text" id="hex-input" placeholder="#6750A4" value="#6750A4">
+      <div id="quantize-container" class="hidden" style="margin-top: 1.5rem;">
+        <label>Quantized Colors (Select one)</label>
+        <div id="quantized-colors" class="color-grid"></div>
       </div>
     </div>
+
+    <div id="section-color" class="hidden">
+      <label>Pick a Color</label>
+      <div class="input-row">
+        <input type="color" id="color-picker" value="#0070ea" style="width: 50px; padding: 0; height: 42px;">
+        <input type="text" id="hex-input" placeholder="#0070ea" value="#0070ea">
+      </div>
+    </div>
+
+    <div id="palette-container" class="hidden">
+      <h2>Core Palette</h2>
+      <p style="font-size: 0.85rem; margin-bottom: 1rem; opacity: 0.8;">Click a color to copy hex code.</p>
+      <div id="core-palette" class="palette-section"></div>
+    </div>
   </div>
 
-  <div class="container" id="quantize-container" style="display: none;">
-    <h2>Quantized Colors (Top Scored)</h2>
-    <div id="quantized-colors" class="color-grid"></div>
-  </div>
-
-  <div class="container">
-    <h2>Core Palette</h2>
-    <div id="core-palette" class="palette-section"></div>
-  </div>
+  <div id="toast">Copied!</div>
 
   <script type="module">
     import {
@@ -174,38 +278,60 @@
     const quantizedContainer = document.getElementById('quantized-colors');
     const quantizeSection = document.getElementById('quantize-container');
     const paletteContainer = document.getElementById('core-palette');
+    const paletteWrapper = document.getElementById('palette-container');
     const colorPicker = document.getElementById('color-picker');
     const hexInput = document.getElementById('hex-input');
+    const btnModeImage = document.getElementById('btn-mode-image');
+    const btnModeColor = document.getElementById('btn-mode-color');
+    const sectionImage = document.getElementById('section-image');
+    const sectionColor = document.getElementById('section-color');
+    const toast = document.getElementById('toast');
 
     const tones = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100];
+
+    const showToast = (msg) => {
+      toast.textContent = msg;
+      toast.classList.add('visible');
+      setTimeout(() => toast.classList.remove('visible'), 2000);
+    };
+
+    const copyToClipboard = (hex) => {
+      navigator.clipboard.writeText(hex).then(
+        () => showToast(`Copied ${hex}`),
+        () => showToast(`Failed to copy ${hex}`)
+      );
+    };
 
     const createColorChip = (argb) => {
       const chip = document.createElement('div');
       chip.className = 'color-chip';
       chip.style.backgroundColor = hexFromArgb(argb);
-      chip.innerHTML = `<span>${hexFromArgb(argb)}</span>`;
+      chip.title = 'Use this color';
       chip.onclick = () => displayPalette(argb);
       return chip;
     };
 
     const createToneChip = (argb, tone) => {
+      const hex = hexFromArgb(argb);
       const chip = document.createElement('div');
       chip.className = 'tone-chip';
-      chip.style.backgroundColor = hexFromArgb(argb);
-      chip.title = `Tone ${tone}`;
+      chip.style.backgroundColor = hex;
+      chip.title = `${hex} (Tone ${tone})`;
+      chip.onclick = () => copyToClipboard(hex);
       return chip;
     };
 
     const displayQuantizedColors = (scoredColors) => {
-      quantizeSection.style.display = 'flex';
+      quantizeSection.classList.remove('hidden');
       quantizedContainer.innerHTML = '';
-      scoredColors.slice(0, 10).map(argb =>
+      scoredColors.slice(0, 8).map(argb =>
         quantizedContainer.appendChild(createColorChip(argb))
       );
     };
 
     const displayPalette = (sourceArgb) => {
       paletteContainer.innerHTML = '';
+      paletteWrapper.classList.remove('hidden');
       const corePalette = CorePalette.of(sourceArgb);
 
       const paletteMap = {
@@ -221,9 +347,10 @@
         const rowContainer = document.createElement('div');
         rowContainer.className = 'tonal-palette';
 
-        const label = document.createElement('h3');
+        const label = document.createElement('div');
         label.textContent = name;
-        label.style.fontSize = '14px';
+        label.style.fontSize = '0.85rem';
+        label.style.fontWeight = 'bold';
         rowContainer.appendChild(label);
 
         const row = document.createElement('div');
@@ -286,7 +413,6 @@
     };
 
     const handleColorInput = (hex) => {
-      quantizeSection.style.display = 'none';
       try {
         const argb = argbFromHex(hex);
         displayPalette(argb);
@@ -305,6 +431,23 @@
       (val.startsWith('#') && (val.length === 4 || val.length === 7)) ?
         (colorPicker.value = val, handleColorInput(val)) : null;
     };
+
+    const toggleMode = (mode) => {
+      const isImage = mode === 'image';
+
+      btnModeImage.classList.toggle('active', isImage);
+      btnModeColor.classList.toggle('active', !isImage);
+
+      sectionImage.classList.toggle('hidden', !isImage);
+      sectionColor.classList.toggle('hidden', isImage);
+
+      (!isImage && hexInput.value) ? handleColorInput(hexInput.value) :
+        (previewImage.src && previewImage.style.display !== 'none') ? processImage(previewImage) :
+        (paletteWrapper.classList.add('hidden'));
+    };
+
+    btnModeImage.onclick = () => toggleMode('image');
+    btnModeColor.onclick = () => toggleMode('color');
   </script>
 </body>
 </html>
