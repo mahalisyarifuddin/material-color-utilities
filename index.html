@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Material Color Utilities - Quantize & Palette</title>
+  <style>
+    :root {
+      --primary: #6750A4;
+      --on-primary: #FFFFFF;
+      --primary-container: #EADDFF;
+      --on-primary-container: #21005D;
+      --background: #FFFBFE;
+      --on-background: #1C1B1F;
+      --surface: #FFFBFE;
+      --on-surface: #1C1B1F;
+      --outline: #79747E;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary: #D0BCFF;
+        --on-primary: #381E72;
+        --primary-container: #4F378B;
+        --on-primary-container: #EADDFF;
+        --background: #1C1B1F;
+        --on-background: #E6E1E5;
+        --surface: #1C1B1F;
+        --on-surface: #E6E1E5;
+        --outline: #938F99;
+      }
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--on-background);
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    h1, h2 {
+      margin: 0;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .input-section {
+      padding: 16px;
+      background-color: var(--surface);
+      border: 1px solid var(--outline);
+      border-radius: 8px;
+    }
+
+    #preview-image {
+      max-width: 100%;
+      max-height: 400px;
+      margin-top: 16px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+
+    .color-chip {
+      height: 80px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      padding: 8px;
+      font-size: 12px;
+      border: 1px solid var(--outline);
+    }
+
+    .palette-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tonal-palette {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tonal-row {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .tone-chip {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Material Color Utilities</h1>
+
+  <div class="input-section">
+    <input type="file" id="file-input" accept="image/*">
+    <img id="preview-image" alt="Preview">
+  </div>
+
+  <div class="container">
+    <h2>Quantized Colors (Top Scored)</h2>
+    <div id="quantized-colors" class="color-grid"></div>
+  </div>
+
+  <div class="container">
+    <h2>Core Palette</h2>
+    <div id="core-palette" class="palette-section"></div>
+  </div>
+
+  <script type="module">
+    import {
+      QuantizerCelebi,
+      Score,
+      argbFromRgb,
+      hexFromArgb,
+      CorePalette
+    } from 'https://esm.sh/@material/material-color-utilities@0.2.7';
+
+    const fileInput = document.getElementById('file-input');
+    const previewImage = document.getElementById('preview-image');
+    const quantizedContainer = document.getElementById('quantized-colors');
+    const paletteContainer = document.getElementById('core-palette');
+
+    const tones = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100];
+
+    const createColorChip = (argb, label) => {
+      const chip = document.createElement('div');
+      chip.className = 'color-chip';
+      chip.style.backgroundColor = hexFromArgb(argb);
+      chip.innerHTML = `<span>${label || ''}</span><span>${hexFromArgb(argb)}</span>`;
+      return chip;
+    };
+
+    const createToneChip = (argb, tone) => {
+      const chip = document.createElement('div');
+      chip.className = 'tone-chip';
+      chip.style.backgroundColor = hexFromArgb(argb);
+      chip.title = `Tone ${tone}`;
+      return chip;
+    };
+
+    const displayQuantizedColors = (scoredColors) => {
+      quantizedContainer.innerHTML = '';
+      scoredColors.slice(0, 10).map(argb =>
+        quantizedContainer.appendChild(createColorChip(argb))
+      );
+    };
+
+    const displayPalette = (sourceArgb) => {
+      paletteContainer.innerHTML = '';
+      const corePalette = CorePalette.of(sourceArgb);
+
+      const paletteMap = {
+        'Primary': corePalette.a1,
+        'Secondary': corePalette.a2,
+        'Tertiary': corePalette.a3,
+        'Neutral': corePalette.n1,
+        'Neutral Variant': corePalette.n2,
+        'Error': corePalette.error
+      };
+
+      Object.entries(paletteMap).map(([name, palette]) => {
+        const rowContainer = document.createElement('div');
+        rowContainer.className = 'tonal-palette';
+
+        const label = document.createElement('h3');
+        label.textContent = name;
+        label.style.fontSize = '14px';
+        rowContainer.appendChild(label);
+
+        const row = document.createElement('div');
+        row.className = 'tonal-row';
+
+        tones.map(tone => {
+          const argb = palette.tone(tone);
+          row.appendChild(createToneChip(argb, tone));
+        });
+
+        rowContainer.appendChild(row);
+        paletteContainer.appendChild(rowContainer);
+      });
+    };
+
+    const processImage = async (img) => {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      context.drawImage(img, 0, 0);
+
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const pixels = [];
+
+      for (let i = 0; i < imageData.length; i += 4) {
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
+        const a = imageData[i + 3];
+        (a < 255) ? null : pixels.push(argbFromRgb(r, g, b));
+      }
+
+      const result = QuantizerCelebi.quantize(pixels, 128);
+      const ranked = Score.score(result);
+
+      displayQuantizedColors(ranked);
+      (ranked.length > 0) ? displayPalette(ranked[0]) : null;
+    };
+
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        previewImage.src = event.target.result;
+        previewImage.style.display = 'block';
+      };
+
+      previewImage.onload = () => {
+        processImage(previewImage);
+      };
+
+      (file) ? reader.readAsDataURL(file) : null;
+    };
+  </script>
+</body>
+</html>
