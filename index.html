@@ -373,7 +373,7 @@
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
 
-      const maxDimension = 128;
+      const maxDimension = 256;
       const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
 
       canvas.width = Math.floor(img.naturalWidth * scale);
@@ -393,7 +393,7 @@
       }
 
       const result = QuantizerCelebi.quantize(pixels, 128);
-      const ranked = Score.score(result);
+      const ranked = Score.score(result, { desired: 128 });
 
       displayQuantizedColors(ranked);
       (ranked.length > 0) ? displayPalette(ranked[0]) : null;
