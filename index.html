@@ -137,6 +137,11 @@
       border: 1px solid var(--border);
     }
 
+    #quantize-count {
+      width: 60px;
+      padding: 0.25rem;
+    }
+
     .color-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -241,7 +246,13 @@
       <img id="preview-image" alt="Preview">
 
       <div id="quantize-container" class="hidden" style="margin-top: 1.5rem;">
-        <label>Quantized Colors (Select one)</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <label style="margin-bottom: 0;">Quantized Colors</label>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label for="quantize-count" style="margin-bottom: 0; font-weight: normal; font-size: 0.85rem;">Count:</label>
+            <input type="number" id="quantize-count" value="4" min="1" max="128">
+          </div>
+        </div>
         <div id="quantized-colors" class="color-grid"></div>
       </div>
     </div>
@@ -277,6 +288,7 @@
     const fileInput = document.getElementById('file-input');
     const previewImage = document.getElementById('preview-image');
     const quantizedContainer = document.getElementById('quantized-colors');
+    const quantizeCountInput = document.getElementById('quantize-count');
     const quantizeSection = document.getElementById('quantize-container');
     const paletteContainer = document.getElementById('core-palette');
     const paletteWrapper = document.getElementById('palette-container');
@@ -327,7 +339,7 @@
     const displayQuantizedColors = (scoredColors) => {
       quantizeSection.classList.remove('hidden');
       quantizedContainer.innerHTML = '';
-      scoredColors.slice(0, 4).map(argb =>
+      scoredColors.map(argb =>
         quantizedContainer.appendChild(createColorChip(argb))
       );
     };
@@ -393,10 +405,15 @@
       }
 
       const result = QuantizerCelebi.quantize(pixels, 128);
-      const ranked = Score.score(result);
+      const count = parseInt(quantizeCountInput.value, 10) || 4;
+      const ranked = Score.score(result, { desired: count });
 
       displayQuantizedColors(ranked);
       (ranked.length > 0) ? displayPalette(ranked[0]) : null;
+    };
+
+    quantizeCountInput.onchange = () => {
+      (previewImage.src && previewImage.style.display !== 'none') ? processImage(previewImage) : null;
     };
 
     fileInput.onchange = (e) => {
