@@ -263,6 +263,7 @@
         <input type="color" id="color-picker" value="#0070ea" style="width: 50px; padding: 0; height: 42px;">
         <input type="text" id="hex-input" placeholder="#0070ea" value="#0070ea">
       </div>
+      <div id="hct-display" style="margin-top: 0.5rem; font-family: monospace;"></div>
     </div>
 
     <div id="palette-container" class="hidden">
@@ -299,6 +300,7 @@
     const sectionImage = document.getElementById('section-image');
     const sectionColor = document.getElementById('section-color');
     const toast = document.getElementById('toast');
+    const hctDisplay = document.getElementById('hct-display');
 
     const tones = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100];
 
@@ -435,6 +437,8 @@
     const handleColorInput = (hex) => {
       try {
         const argb = argbFromHex(hex);
+        const hct = Hct.fromInt(argb);
+        hctDisplay.textContent = `H: ${Math.round(hct.hue)} C: ${Math.round(hct.chroma)} T: ${Math.round(hct.tone)}`;
         displayPalette(argb);
       } catch (e) {
         null;
@@ -447,9 +451,21 @@
     };
 
     hexInput.oninput = (e) => {
-      const val = e.target.value;
-      (val.startsWith('#') && (val.length === 4 || val.length === 7)) ?
-        (colorPicker.value = val, handleColorInput(val)) : null;
+      const val = e.target.value.trim();
+      const withHash = val.startsWith('#') ? val : '#' + val;
+      const isMatch = /^#?([0-9A-F]{3}){1,2}$/i.test(val);
+      isMatch ? ((hex) => {
+        const fullHex = (hex.length === 4) ? '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3] : hex;
+        colorPicker.value = fullHex;
+        handleColorInput(fullHex);
+      })(withHash) : null;
+    };
+
+    hexInput.onblur = (e) => {
+      const val = e.target.value.trim();
+      const withHash = val.startsWith('#') ? val : '#' + val;
+      const isMatch = /^#?([0-9A-F]{3}){1,2}$/i.test(val);
+      isMatch ? e.target.value = withHash : null;
     };
 
     const toggleMode = (mode) => {
