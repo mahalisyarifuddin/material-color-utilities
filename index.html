@@ -267,6 +267,11 @@
     </div>
 
     <div id="palette-container" class="hidden">
+      <div style="margin-bottom: 2rem;">
+        <h2>Android Legacy Palette</h2>
+        <div id="legacy-palette" class="color-grid" style="margin-top: 1rem;"></div>
+      </div>
+
       <h2>Core Palette</h2>
       <p style="font-size: 0.85rem; margin-bottom: 1rem; opacity: 0.8;">Click a color to copy hex code.</p>
       <div id="core-palette" class="palette-section"></div>
@@ -292,6 +297,7 @@
     const quantizeCountInput = document.getElementById('quantize-count');
     const quantizeSection = document.getElementById('quantize-container');
     const paletteContainer = document.getElementById('core-palette');
+    const legacyContainer = document.getElementById('legacy-palette');
     const paletteWrapper = document.getElementById('palette-container');
     const colorPicker = document.getElementById('color-picker');
     const hexInput = document.getElementById('hex-input');
@@ -302,7 +308,89 @@
     const toast = document.getElementById('toast');
     const hctDisplay = document.getElementById('hct-display');
 
+    const TARGET_DARK_LUMA = 0.26;
+    const MAX_DARK_LUMA = 0.45;
+    const MIN_LIGHT_LUMA = 0.55;
+    const TARGET_LIGHT_LUMA = 0.74;
+    const MIN_NORMAL_LUMA = 0.3;
+    const TARGET_NORMAL_LUMA = 0.5;
+    const MAX_NORMAL_LUMA = 0.7;
+    const TARGET_MUTED_SATURATION = 0.3;
+    const MAX_MUTED_SATURATION = 0.4;
+    const TARGET_VIBRANT_SATURATION = 1.0;
+    const MIN_VIBRANT_SATURATION = 0.35;
+    const WEIGHT_SATURATION = 0.24;
+    const WEIGHT_LUMA = 0.52;
+    const WEIGHT_POPULATION = 0.24;
+
+    const legacyProfiles = {
+      'Light Vibrant': {
+        minL: MIN_LIGHT_LUMA, targetL: TARGET_LIGHT_LUMA, maxL: 1.0,
+        minS: MIN_VIBRANT_SATURATION, targetS: TARGET_VIBRANT_SATURATION, maxS: 1.0
+      },
+      'Vibrant': {
+        minL: MIN_NORMAL_LUMA, targetL: TARGET_NORMAL_LUMA, maxL: MAX_NORMAL_LUMA,
+        minS: MIN_VIBRANT_SATURATION, targetS: TARGET_VIBRANT_SATURATION, maxS: 1.0
+      },
+      'Dark Vibrant': {
+        minL: 0.0, targetL: TARGET_DARK_LUMA, maxL: MAX_DARK_LUMA,
+        minS: MIN_VIBRANT_SATURATION, targetS: TARGET_VIBRANT_SATURATION, maxS: 1.0
+      },
+      'Light Muted': {
+        minL: MIN_LIGHT_LUMA, targetL: TARGET_LIGHT_LUMA, maxL: 1.0,
+        minS: 0.0, targetS: TARGET_MUTED_SATURATION, maxS: MAX_MUTED_SATURATION
+      },
+      'Muted': {
+        minL: MIN_NORMAL_LUMA, targetL: TARGET_NORMAL_LUMA, maxL: MAX_NORMAL_LUMA,
+        minS: 0.0, targetS: TARGET_MUTED_SATURATION, maxS: MAX_MUTED_SATURATION
+      },
+      'Dark Muted': {
+        minL: 0.0, targetL: TARGET_DARK_LUMA, maxL: MAX_DARK_LUMA,
+        minS: 0.0, targetS: TARGET_MUTED_SATURATION, maxS: MAX_MUTED_SATURATION
+      }
+    };
+
     const tones = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100];
+
+    const rgbToHsl = (argb) => {
+      const r = (argb >> 16 & 255) / 255;
+      const g = (argb >> 8 & 255) / 255;
+      const b = (argb & 255) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const l = (max + min) / 2;
+      const d = max - min;
+      const s = (l > 0.5) ? d / (2 - max - min) : d / (max + min);
+      const h = (max === min) ? 0 :
+        (max === r) ? (g - b) / d + (g < b ? 6 : 0) :
+        (max === g) ? (b - r) / d + 2 :
+        (r - g) / d + 4;
+      return [h * 60, (d === 0) ? 0 : s, l];
+    };
+
+    const isAllowed = (hsl) => (hsl[2] > 0.05 && hsl[2] < 0.95 && !(hsl[0] >= 10 && hsl[0] <= 37 && hsl[1] <= 0.82));
+
+    const getLegacyPalette = (colorMap) => {
+      const swatches = Array.from(colorMap.entries()).map(([argb, pop]) => ({argb, pop, hsl: rgbToHsl(argb)}));
+      const allowed = swatches.filter(s => isAllowed(s.hsl));
+      const maxPop = Math.max(...swatches.map(s => s.pop), 1);
+      const used = new Set();
+
+      return Object.entries(legacyProfiles).map(([name, p]) => {
+        const scored = allowed
+          .filter(s => !used.has(s.argb) && s.hsl[1] >= p.minS && s.hsl[1] <= p.maxS && s.hsl[2] >= p.minL && s.hsl[2] <= p.maxL)
+          .map(s => ({
+            argb: s.argb,
+            score: (WEIGHT_SATURATION * (1 - Math.abs(s.hsl[1] - p.targetS))) +
+                   (WEIGHT_LUMA * (1 - Math.abs(s.hsl[2] - p.targetL))) +
+                   (WEIGHT_POPULATION * (s.pop / maxPop))
+          }))
+          .sort((a, b) => b.score - a.score);
+        const best = scored[0]?.argb;
+        (best) ? used.add(best) : null;
+        return {name, argb: best};
+      });
+    };
 
     const showToast = (msg) => {
       toast.textContent = msg;
@@ -344,6 +432,25 @@
       scoredColors.map(argb =>
         quantizedContainer.appendChild(createColorChip(argb))
       );
+    };
+
+    const displayLegacyPalette = (palette) => {
+      legacyContainer.innerHTML = '';
+      palette.forEach(({name, argb}) => {
+        const chip = (argb !== undefined) ? createColorChip(argb) : document.createElement('div');
+        (argb !== undefined) ? null : chip.className = 'color-chip';
+        (argb !== undefined) ? null : chip.style.backgroundColor = '#ccc';
+        (argb !== undefined) ? null : chip.style.opacity = '0.3';
+        (argb !== undefined) ? null : chip.style.cursor = 'default';
+        const label = document.createElement('div');
+        label.textContent = name;
+        label.style.background = 'rgba(0,0,0,0.5)';
+        label.style.color = '#fff';
+        label.style.padding = '2px';
+        label.style.borderRadius = '2px';
+        chip.appendChild(label);
+        legacyContainer.appendChild(chip);
+      });
     };
 
     const displayPalette = (sourceArgb) => {
@@ -411,6 +518,8 @@
       const ranked = Score.score(result, { desired: count });
 
       displayQuantizedColors(ranked);
+      const legacy = getLegacyPalette(result);
+      displayLegacyPalette(legacy);
       (ranked.length > 0) ? displayPalette(ranked[0]) : null;
     };
 
@@ -439,6 +548,7 @@
         const argb = argbFromHex(hex);
         const hct = Hct.fromInt(argb);
         hctDisplay.textContent = `H: ${Math.round(hct.hue)} C: ${Math.round(hct.chroma)} T: ${Math.round(hct.tone)}`;
+        legacyContainer.innerHTML = '';
         displayPalette(argb);
       } catch (e) {
         null;
