@@ -406,12 +406,15 @@
     };
 
     const createColorChip = (argb) => {
+      const hct = Hct.fromInt(argb);
       const hex = hexFromArgb(argb);
-      const tone = Math.round(Hct.fromInt(argb).tone);
+      const h = Math.round(hct.hue);
+      const c = Math.round(hct.chroma);
+      const t = Math.round(hct.tone);
       const chip = document.createElement('div');
       chip.className = 'color-chip';
       chip.style.backgroundColor = hex;
-      chip.title = `${hex} Tone: ${tone}`;
+      chip.title = `${hex} H:${h} C:${c} T:${t}`;
       chip.onclick = () => displayPalette(argb);
       return chip;
     };
